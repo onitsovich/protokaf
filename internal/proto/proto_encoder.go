@@ -1,9 +1,16 @@
 package proto
 
 import (
+	"encoding/binary"
 	"github.com/Shopify/sarama"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
+)
+
+const (
+	magicByte    byte = 0x0
+	defaultIndex byte = 0x0
+	schema       int  = 3
 )
 
 var _ sarama.Encoder = &protoEncoder{}
@@ -17,8 +24,14 @@ type protoEncoder struct {
 func Encoder(m *dynamic.Message) sarama.Encoder {
 	data, err := m.Marshal()
 
+	b := make([]byte, 6, len(data)+6)
+	b[0] = magicByte
+	binary.BigEndian.PutUint32(b[1:], uint32(schema))
+	b[5] = defaultIndex
+	b = append(b, data...)
+
 	return &protoEncoder{
-		data: data,
+		data: b,
 		err:  err,
 	}
 }
